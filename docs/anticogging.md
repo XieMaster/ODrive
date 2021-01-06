@@ -18,15 +18,17 @@ end_tolerance | float | Used in anticogging to determine running speed, gain, an
 
 ## Calibration
 
+For the following instructions, `<odrv>` and `<axis>` should be substituted with the actual handles of your ODrive in odrivetool, such as `odrv0.axis0` or `odrv0.axis1`.
+
 To calibrate anticogging, first make sure you can adequately control the motor in velocity control.  It should respond to velocity commands. Anticogging uses your setting for `<odrv>.<axis>.controller.config.vel_integrator_gain`, so you must have stable control before running anticogging. It doesn't have to be perfect, however - the stock gains are fairly loose and they work for anticogging with the ODrive D5065 and D6374 motors.
 
 The anticogging map requires an absolute position reference. An absolute encoder or an incremental encoder with an index pin is required for anticogging. Make sure that your encoder is set to use the index pin before starting calibration - `<odrv>.<axis>.encoder.config.use_index = True`. You must also run the encoder index search before starting. If you have the config option set to use the index, the index search will occur during `AXIS_STATE_FULL_CALIBRATION_SEQUENCE`.
 
 Start by putting the axis in `AXIS_STATE_CLOSED_LOOP` with `CONTROL_MODE_VELOCITY_CONTROL` and `INPUT_MODE_PASSTHROUGH`.  Make sure you have good control of the motor in this state (it responds to velocity commands). It is normal for the motor to experience some cogging torque in this mode before the anticogging calibration has been applied.
 
-Run `controller.start_anticogging_calibration()`.  The motor will turn quickly at first and slow down as the cogging map improves. You can monitor `<odrv>.<axis>.controller.input_vel` to see how it is progressing. The end condition is for the motor to have completed 10 turns and for `input_vel` to be within 10% of `end_vel`.
+Run `<odrv>.<axis>.controller.start_anticogging_calibration()`.  The motor will turn quickly at first and slow down as the cogging map improves. You can monitor `<odrv>.<axis>.controller.input_vel` to see how it is progressing. The end condition is for the motor to have completed 10 turns and for `input_vel` to be within 10% of `end_vel`.
 
-When anticogging is complete, the motor will stop. After anticogging calibration is complete, set `<odrv>.<axis>.requested_state = AXIS_STATE_IDLE` and run `<odrv>.<axis>.anticogging_remove_bias()`. Run `<odrv>.<axis>.requested_state = AXIS_STATE_ENCODER_INDEX_SEARCH` for ODrive to get an absolute position reference and then go into closed loop control.
+When anticogging is complete, the motor will stop. After anticogging calibration is complete, set `<odrv>.<axis>.requested_state = AXIS_STATE_IDLE` and run `<odrv>.<axis>.controller.anticogging_remove_bias()`. Run `<odrv>.<axis>.requested_state = AXIS_STATE_ENCODER_INDEX_SEARCH` for ODrive to get an absolute position reference and then go into closed loop control.
 
 If the anticogging performance is not good enough for you, you can run calibration again with a lower value of `end_tolerance`.
 
