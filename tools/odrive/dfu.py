@@ -223,16 +223,16 @@ def put_into_dfu_mode(device, cancellation_token):
     Puts the specified device into DFU mode
     """
     if not hasattr(device, "enter_dfu_mode"):
-        print("The firmware on device {} cannot soft enter DFU mode.\n"
+        print("The firmware on device {:08X} cannot soft enter DFU mode.\n"
               "Please remove power, put the DFU switch into DFU mode,\n"
               "then apply power again. Then try again.\n"
               "If it still doesn't work, you can try to use the DeFuse app or \n"
               "dfu-util, see the odrive documentation.\n"
               "You can also flash the firmware using STLink (`make flash`)"
-              .format(device.__channel__.usb_device.serial_number))
+              .format(device.serial_number))
         return
         
-    print("Putting device {} into DFU mode...".format(device.__channel__.usb_device.serial_number))
+    print("Putting device {:08X} into DFU mode...".format(device.serial_number))
     try:
         device.enter_dfu_mode()
     except fibre.ObjectLostError:
@@ -281,7 +281,7 @@ def update_device(device, firmware, logger, cancellation_token):
         else:
             hw_version = (0, 0, 0)
     else:
-        serial_number = device.__channel__.usb_device.serial_number
+        serial_number = "{:08X}".format(device.serial_number)
         dfudev = None
 
         # Read hardware version as reported from firmware
@@ -422,7 +422,7 @@ def update_device(device, firmware, logger, cancellation_token):
     dfudev.jump_to_application(0x08000000)
 
     logger.info("Waiting for the device to reappear...")
-    device = odrive.find_any("usb", serial_number,
+    device = odrive.find_any(odrive.default_usb_search_path, serial_number,
                     cancellation_token, cancellation_token, timeout=30)
 
     if do_backup_config:
@@ -455,7 +455,7 @@ def launch_dfu(args, logger, cancellation_token):
 
     # Scan for ODrives not in DFU mode
     # We only scan on USB because DFU is only implemented over USB
-    devices[1] = odrive.find_any("usb", serial_number,
+    devices[1] = odrive.find_any(odrive.default_usb_search_path, serial_number,
         find_odrive_cancellation_token, cancellation_token)
     find_odrive_cancellation_token.set()
     

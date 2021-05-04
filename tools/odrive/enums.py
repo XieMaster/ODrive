@@ -20,6 +20,7 @@ GPIO_MODE_ENC1                           = 12
 GPIO_MODE_ENC2                           = 13
 GPIO_MODE_MECH_BRAKE                     = 14
 GPIO_MODE_STATUS                         = 15
+GPIO_MODE_BRAKE_RES                      = 16
 
 # ODrive.StreamProtocolType
 STREAM_PROTOCOL_TYPE_FIBRE               = 0
@@ -101,6 +102,7 @@ AXIS_ERROR_MAX_ENDSTOP_PRESSED           = 0x00002000
 AXIS_ERROR_ESTOP_REQUESTED               = 0x00004000
 AXIS_ERROR_HOMING_WITHOUT_ENDSTOP        = 0x00020000
 AXIS_ERROR_OVER_TEMP                     = 0x00040000
+AXIS_ERROR_UNKNOWN_POSITION              = 0x00080000
 
 # ODrive.Motor.Error
 MOTOR_ERROR_NONE                         = 0x00000000
