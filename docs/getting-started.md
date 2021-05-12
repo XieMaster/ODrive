@@ -51,6 +51,9 @@ permalink: /
 
 ## Wiring up the ODrive
 <div class="alert">
+Firmware, software, and documentation is intended for use with ODrive motor controllers purchased from odriverobotics.com. ODrive Robotics does not sell products through any channel other than odriverobotics.com. We do not provide support for ODrives purchased elsewhere.
+</div>
+<div class="alert">
 Make sure you have a good mechanical connection between the encoder and the motor, slip can cause disastrous oscillations or runaway.
 </div>
 
@@ -273,7 +276,7 @@ You can also directly control the current of the motor, which is proportional to
 - [Circular position control](#circular-position-control)
 - [Velocity control](#velocity-control)
 - [Ramped velocity control](#ramped-velocity-control)
-- [Current control](#current-control)
+- [Torque control](#torque-control)
 
 
 ### Filtered position control

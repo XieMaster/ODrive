@@ -694,7 +694,9 @@ interfaces:
           vel_limit_tolerance:
             type: float32
             doc: Ratio to `vel_limit`. Infinity to disable.
-          vel_ramp_rate: float32
+          vel_ramp_rate: 
+            type: float32
+            unit: turn/s^2
           torque_ramp_rate:
             type: float32
             unit: Nm / sec
@@ -755,6 +757,9 @@ interfaces:
               [your encoder](https://docs.odriverobotics.com/encoders). The
               ODrive uses your supplied value for the motor pole pairs to
               measure the CPR. So you should also double check this value.
+              
+              If you are still having issues, you can try to increase
+              `encoder.config.calib_scan_distance` up to a factor of 4 above the default.
 
               Note that the AMT encoders are configurable using the micro-
               switches on the encoder PCB and so you may need to check that

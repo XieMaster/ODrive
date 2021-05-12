@@ -40,10 +40,11 @@ odrv0.axis0.motor.config.torque_constant = 8.27 / <measured KV>
 ```
 
 If you set the encoder to hall mode (instead of incremental). See the [pinout](encoders.md#hall-effect-encoders) for instructions on how to plug in the hall feedback.
-The hall feedback has 6 states for every pole pair in the motor. Since we have 15 pole pairs, we set the cpr to 15*6 = 90.
+The hall feedback has 6 states for every pole pair in the motor. Since we have 15 pole pairs, we set the cpr to `15*6 = 90`. Since hall sensors are low resolution feedback, we also bump up the offset calibration displacement to get better calibration accuracy.
 ```txt
 odrv0.axis0.encoder.config.mode = ENCODER_MODE_HALL
 odrv0.axis0.encoder.config.cpr = 90
+odrv0.axis0.encoder.config.calib_scan_distance = 150
 ```
 
 Since the hall feedback only has 90 counts per revolution, we want to reduce the velocity tracking bandwidth to get smoother velocity estimates.
@@ -100,7 +101,7 @@ Check the status of the encoder object:
 odrv0.axis0.encoder
 ```
 
-Check that there are no errors. If your hall sensors has a standard timing angle then `offset_float` should be close to 0.5 or 1.5.
+Check that there are no errors. If your hall sensors has a standard timing angle then `offset_float` should be close to 0.5 mod 1. Meaning values close to -1.5, -0.5, 0.5, or 1.5, etc are all good.
 ```txt
   error = 0x0000 (int)
   offset_float = 0.5126956701278687 (float)
