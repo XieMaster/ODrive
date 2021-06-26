@@ -19,7 +19,7 @@ You may wire the motor phases in any order into a motor connector on the ODrive,
 | Green     | Z         |
 | Black     | GND       |
 
-Note: In order to be compatible with encoder inputs, the ODrive doesn't have any filtering capacitors on the pins where the hall sensors connect. Therefore to get a reliable hall signal, it is recommended that you add some filter capacitors to these pins. You can see instructions [here](https://discourse.odriverobotics.com/t/encoder-error-error-illegal-hall-state/1047/7?u=madcowswe).
+Note: In order to be compatible with encoder inputs, the ODrive doesn't have any filtering capacitors on the pins where the hall sensors connect. Therefore to get a reliable hall signal, it is recommended that you add some filter capacitors to these pins. We recommend about 22nF between each signal pin and GND. You can see instructions [here](https://discourse.odriverobotics.com/t/encoder-error-error-illegal-hall-state/1047/7?u=madcowswe).
 
 
 ### Hoverboard motor configuration
@@ -45,6 +45,9 @@ The hall feedback has 6 states for every pole pair in the motor. Since we have 1
 odrv0.axis0.encoder.config.mode = ENCODER_MODE_HALL
 odrv0.axis0.encoder.config.cpr = 90
 odrv0.axis0.encoder.config.calib_scan_distance = 150
+odrv0.config.gpio9_mode = GPIO_MODE_DIGITAL
+odrv0.config.gpio10_mode = GPIO_MODE_DIGITAL
+odrv0.config.gpio11_mode = GPIO_MODE_DIGITAL
 ```
 
 Since the hall feedback only has 90 counts per revolution, we want to reduce the velocity tracking bandwidth to get smoother velocity estimates.
@@ -93,6 +96,22 @@ Next step is to check the alignment between the motor and the hall sensor.
 Because of this step you are allowed to plug the motor phases in random order and also the hall signals can be random. Just don't change it after calibration.
 Make sure the motor is free to move and run:
 ```txt
+odrv0.axis0.requested_state = AXIS_STATE_ENCODER_HALL_POLARITY_CALIBRATION
+```
+
+Check the status of the encoder object:
+```txt
+odrv0.axis0.encoder
+```
+
+Check that there are no errors.
+```txt
+  error = 0x0000 (int)
+```
+
+If the hall encoder polarity calibration was successful, run the encoder offset calibration.
+
+```txt
 odrv0.axis0.requested_state = AXIS_STATE_ENCODER_OFFSET_CALIBRATION
 ```
 
@@ -101,10 +120,11 @@ Check the status of the encoder object:
 odrv0.axis0.encoder
 ```
 
-Check that there are no errors. If your hall sensors has a standard timing angle then `offset_float` should be close to 0.5 mod 1. Meaning values close to -1.5, -0.5, 0.5, or 1.5, etc are all good.
+Check that there are no errors. If your hall sensors has a standard timing angle then `phase_offset_float` should be close to 0.5 mod 1. Meaning values close to -1.5, -0.5, 0.5, or 1.5, etc are all good.
 ```txt
   error = 0x0000 (int)
-  offset_float = 0.5126956701278687 (float)
+  config:
+    phase_offset_float = 0.5126956701278687 (float)
 ```
 
 If all looks good then you can tell the ODrive that saving this calibration to presistent memory is OK:
@@ -134,11 +154,11 @@ We also have to reboot to activate the PWM input.
 ```txt
 odrv0.config.gpio3_pwm_mapping.min = -2
 odrv0.config.gpio3_pwm_mapping.max = 2
-odrv0.config.gpio3_pwm_mapping.endpoint = odrv0.axis0.controller._remote_attributes['input_vel']
+odrv0.config.gpio3_pwm_mapping.endpoint = odrv0.axis0.controller._input_vel_property
 
 odrv0.config.gpio4_pwm_mapping.min = -2
 odrv0.config.gpio4_pwm_mapping.max = 2
-odrv0.config.gpio4_pwm_mapping.endpoint = odrv0.axis1.controller._remote_attributes['input_vel']
+odrv0.config.gpio4_pwm_mapping.endpoint = odrv0.axis1.controller._input_vel_property
 
 odrv0.save_configuration()
 odrv0.reboot()

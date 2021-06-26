@@ -9,11 +9,13 @@ sections:
         url: /
       - title: ODrive Tool
         url: /odrivetool
+      - title: Control Modes
+        url: /control-modes
       - title: Parameters & Commands
         url: /commands
       - title: Encoders
         url: /encoders
-      - title: Control & Tuning
+      - title: Control Structure & Tuning
         url: /control
       - title: Troubleshooting
         url: /troubleshooting
@@ -45,6 +47,8 @@ sections:
         url: /step-direction
       - title: RC PWM
         url: /rc-pwm
+      - title: Analog Input
+        url: /analog-input
       - title: Homing & Endstops
         url: /endstops
       - title: Thermistors

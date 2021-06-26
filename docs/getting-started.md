@@ -14,6 +14,7 @@ permalink: /
 - [Downloading and Installing Tools](#downloading-and-installing-tools)
 - [Firmware](#firmware)
 - [Start `odrivetool`](#start-odrivetool)
+- [Debugging](#debugging)
 - [Configure M0](#configure-m0)
 - [Position control of M0](#position-control-of-m0)
 - [Other control modes](#other-control-modes)
@@ -90,9 +91,6 @@ Most instructions in this guide refer to a utility called `odrivetool`, so you s
   * __Anaconda__: In the start menu, type `Anaconda Prompt` <kbd>Enter</kbd>
   * __Standalone Python__: In the start menu, type `cmd` <kbd>Enter</kbd>
 3. Install the ODrive tools by typing `pip install --upgrade odrive` <kbd>Enter</kbd>
-4. Plug in a USB cable into the microUSB connector on ODrive, and connect it to your PC.
-5. Use the [Zadig](http://zadig.akeo.ie/) utility to set ODrive driver to libusb-win32.
-  * Check 'List All Devices' from the options menu, and select 'ODrive 3.x Native Interface (Interface 2)'. With that selected in the device list choose 'libusb-win32' from the target driver list and then press the large 'install driver' button.
 
 
 ### OSX
@@ -120,16 +118,22 @@ pip3 install --upgrade odrive
 
 __Troubleshooting__
 1. Permission Errors: Just run the previous command in sudo
-```bash
-sudo pip3 install --upgrade odrive
-```
+   ```bash
+   sudo pip3 install --upgrade odrive
+   ```
 
 2. Dependency Errors: If the installer doesn't complete and you get a dependency
 error (Ex. "No module..." or "module_name not found")
-```bash
-sudo pip3 install module_name
-```
-Try step 5 again
+   ```bash
+   sudo pip3 install module_name
+   ```
+   Try step 5 again
+
+3. Other Install Errors: If the installer fails at installing dependencies, try
+   ```bash
+   sudo pip3 install odrive --no-deps
+   ```
+   If you do this, brace yourself for runtime errors when you run `odrivetool` (the basic functionality should work though).
 
 
 ### Linux
@@ -151,7 +155,7 @@ Your board should come preflashed with firmware. If you run into problems, follo
 Your board does **not** come preflashed with any firmware. Follow the instructions [here](odrivetool.md#device-firmware-update) on the ST Link procedure before you continue.
 
 ## Start `odrivetool`
-To launch the main interactive ODrive tool, type `odrivetool` <kbd>Enter</kbd>. Connect your ODrive and wait for the tool to find it. Now you can, for instance type `odrv0.vbus_voltage` <kbd>Enter</kbd> to inpect the boards main supply voltage.
+To launch the main interactive ODrive tool, type `odrivetool` <kbd>Enter</kbd>. Connect your ODrive and wait for the tool to find it. If it doesn't connect after a few seconds refer to the [troubleshooting page](troubleshooting.md#usb-connectivity-issues). Now you can, for instance type `odrv0.vbus_voltage` <kbd>Enter</kbd> to inpect the boards main supply voltage.
 It should look something like this:
 
 ```text
@@ -167,6 +171,9 @@ Out[1]: 11.97055721282959
 The tool you're looking at is a fully capable Python command prompt, so you can type any valid python code.
 
 You can read more about `odrivetool` [here](odrivetool.md).
+
+## Debugging
+If any of the following steps fail, print the errors by running `dump_errors(odrv0)` in `odrivetool`. You can clear errors by running `odrv0.clear_errors()`.
 
 ## Configure M0
 <div class="alert" markdown="span">Read this section carefully, else you risk breaking something.</div>
@@ -198,8 +205,14 @@ The motor will be limited to this speed. Again the default value is quite slow.
 You can change `odrv0.axis0.motor.config.calibration_current` [A] to the largest value you feel comfortable leaving running through the motor continuously when the motor is stationary. If you are using a small motor (i.e. 15A current rated) you may need to reduce `calibration_current` to a value smaller than the default.
 
 ### 2. Set other hardware parameters
+`odrv0.config.enable_brake_resistor`
+Set this to `True` if using a brake resistor. You need to save the ODrive configuration and reboot the ODrive for this to take effect.
+
 `odrv0.config.brake_resistance` [Ohm]  
-This is the resistance of the brake resistor. If you are not using it, you may set it to `0`. Note that there may be some extra resistance in your wiring and in the screw terminals, so if you are getting issues while braking you may want to increase this parameter by around 0.05 ohm.
+This is the resistance of the brake resistor. You can leave this at the default setting if you are not using a brake resistor. Note that there may be some extra resistance in your wiring and in the screw terminals, so if you are getting issues while braking you may want to increase this parameter by around 0.05 ohm.
+
+`odrv0.config.dc_max_negative_current` [Amps]
+This is the amount of current allowed to flow back into the power supply. The convention is that it is negative. By default, it is set to a conservative value of 10mA. If you are using a brake resistor and getting `DC_BUS_OVER_REGEN_CURRENT` errors, raise it slightly. If you are not using a brake resistor and you intend to send braking current back to the power supply, set this to a safe level for your power source. Note that in that case, it should be higher than your motor current limit + current limit margin.
  
 `odrv0.axis0.motor.config.pole_pairs`  
 This is the number of **magnet poles** in the rotor, **divided by two**. To find this, you can simply count the number of permanent magnets in the rotor, if you can see them.
@@ -258,7 +271,7 @@ Let's get motor 0 up and running. The procedure for motor 1 is exactly the same,
   
   Check the encoder wiring and that the encoder is firmly connected to the motor. Check the value of `dump_errors(odrv0)` and then refer to the [error code documentation](troubleshooting.md#error-codes) for details.
 
-  Once you understand the error and have fixed its cause, you may clear the error state with (`dump_errors(odrv0, True)` <kbd>Enter</kbd>) and retry.
+  Once you understand the error and have fixed its cause, you may clear the error state with (`odrv0.clear_errors()` <kbd>Enter</kbd>) and retry.
   </div></details>
 
 2. Type `odrv0.axis0.requested_state = AXIS_STATE_CLOSED_LOOP_CONTROL` <kbd>Enter</kbd>. From now on the ODrive will try to hold the motor's position. If you try to turn it by hand, it will fight you gently. That is unless you bump up `odrv0.axis0.motor.config.current_lim`, in which case it will fight you more fiercely. If the motor begins to vibrate either immediately or after being disturbed you will need to [lower the controller gains](control.md).
@@ -271,100 +284,13 @@ The default control mode is unfiltered position control in the absolute encoder 
 You may also wish to control velocity (directly or with a ramping filter).
 You can also directly control the current of the motor, which is proportional to torque.
 
-- [Filtered position control](#filtered-position-control)
-- [Trajectory control](#trajectory-control)
-- [Circular position control](#circular-position-control)
-- [Velocity control](#velocity-control)
-- [Ramped velocity control](#ramped-velocity-control)
-- [Torque control](#torque-control)
+- [Filtered position control](control-modes.md#filtered-position-control)
+- [Trajectory control](control-modes.md#trajectory-control)
+- [Circular position control](control-modes.md#circular-position-control)
+- [Velocity control](control-modes.md#velocity-control)
+- [Ramped velocity control](control-modes.md#ramped-velocity-control)
+- [Torque control](control-modes.md#torque-control)
 
-
-### Filtered position control
-Asking the ODrive controller to go as hard as it can to raw setpoints may result in jerky movement. Even if you are using a planned trajectory generated from an external source, if that is sent at a modest frequency, the ODrive may chase each stair in the incoming staircase in a jerky way. In this case, a good starting point for tuning the filter bandwidth is to set it to one half of your setpoint command rate.
-
-You can use the second order position filter in these cases.
-Set the filter bandwidth: `axis.controller.config.input_filter_bandwidth = 2.0` [1/s]<br>
-Activate the setpoint filter: `axis.controller.config.input_mode = INPUT_MODE_POS_FILTER`.<br>
-You can now control the velocity with `axis.controller.input_pos = 1` [turns].
-
-![secondOrderResponse](secondOrderResponse.PNG)<br>
-Step response of a 1000 to 0 position input with a filter bandwidth of 1.0 [/sec].
-
-### Trajectory control
-See the **Usage** section for usage details.<br>
-This mode lets you smoothly accelerate, coast, and decelerate the axis from one position to another. With raw position control, the controller simply tries to go to the setpoint as quickly as possible. Using a trajectory lets you tune the feedback gains more aggressively to reject disturbance, while keeping smooth motion.
-
-![Taptraj](TrapTrajPosVel.PNG)<br>
-In the above image blue is position and orange is velocity.
-
-#### Parameters
-```
-<odrv>.<axis>.trap_traj.config.vel_limit = <Float>
-<odrv>.<axis>.trap_traj.config.accel_limit = <Float>
-<odrv>.<axis>.trap_traj.config.decel_limit = <Float>
-<odrv>.<axis>.controller.config.inertia = <Float>
-```
-
-`vel_limit` is the maximum planned trajectory speed.  This sets your coasting speed.<br>
-`accel_limit` is the maximum acceleration in turns / sec^2<br>
-`decel_limit` is the maximum deceleration in turns / sec^2<br>
-`controller.config.inertia` is a value which correlates acceleration (in turns / sec^2) and motor torque. It is 0 by default. It is optional, but can improve response of your system if correctly tuned. Keep in mind this will need to change with the load / mass of your system.
-
-All values should be strictly positive (>= 0).
-
-Keep in mind that you must still set your safety limits as before.  It is recommended you set these a little higher ( > 10%) than the planner values, to give the controller enough control authority.
-```
-<odrv>.<axis>.motor.config.current_lim = <Float>
-<odrv>.<axis>.controller.config.vel_limit = <Float>
-```
-
-#### Usage
-Make sure you are in position control mode. To activate the trajectory module, set the input mode to trajectory:
-```
-axis.controller.config.input_mode = INPUT_MODE_TRAP_TRAJ
-```
-
-Simply send a position command to execute the move:
-```
-<odrv>.<axis>.controller.input_pos = <Float>
-```
-
-Use the `move_incremental` function to move to a relative position.
-To set the goal relative to the current actual position, use `from_goal_point = False`
-To set the goal relative to the previous destination, use `from_goal_point = True`
-```
-<odrv>.<axis>.controller.move_incremental(pos_increment, from_goal_point)
-```
-
-You can also execute a move with the [appropriate ascii command](ascii-protocol.md#motor-trajectory-command).
-
-### Circular position control
-
-To enable Circular position control, set `axis.controller.config.circular_setpoints = True`
-
-This mode is useful for continuous incremental position movement. For example a robot rolling indefinitely, or an extruder motor or conveyor belt moving with controlled increments indefinitely.
-In the regular position mode, the `input_pos` would grow to a very large value and would lose precision due to floating point rounding.
-
-In this mode, the controller will try to track the position within only one turn of the motor. Specifically, `input_pos` is expected in the range `[0, 1)`. If the `input_pos` is incremented to outside this range (say via step/dir input), it is automatically wrapped around into the correct value.
-Note that in this mode `encoder.pos_circular` is used for feedback instead of `encoder.pos_estimate`.
-
-If you try to increment the axis with a large step in one go that exceeds `1` turn, the motor will go to the same angle around the wrong way. This is also the case if there is a large disturbance. If you have an application where you would like to handle larger steps, you can use a larger circular range. Set `controller.config.circular_setpoints_range = N`. Choose N to give you an appropriate circular space for your application.
-
-### Velocity control
-Set `axis.controller.config.control_mode = CONTROL_MODE_VELOCITY_CONTROL`.<br>
-You can now control the velocity with `axis.controller.input_vel = 1` [turn/s].
-
-### Ramped velocity control
-Set `axis.controller.config.control_mode = CONTROL_MODE_VELOCITY_CONTROL`.<br>
-Set the velocity ramp rate (acceleration): `axis.controller.config.vel_ramp_rate = 0.5` [turn/s^2]<br>
-Activate the ramped velocity mode: `axis.controller.config.input_mode = INPUT_MODE_VEL_RAMP`.<br>
-You can now control the velocity with `axis.controller.input_vel = 1` [turn/s].
-
-### Torque control
-Set `axis.controller.config.control_mode = CONTROL_MODE_TORQUE_CONTROL`.<br>
-You can now control the torque with `axis.controller.input_torque = 0.1` [Nm].
-
-Note: If you exceed `vel_limit` in torque control mode, the current is reduced. To disable this, set `axis.controller.enable_current_mode_vel_limit = False`.
 
 ## Watchdog Timer
 Each axis has a configurable watchdog timer that can stop the motors if the
